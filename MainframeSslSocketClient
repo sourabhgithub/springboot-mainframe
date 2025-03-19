@@ -1,0 +1,68 @@
+1. Using a Custom Socket Connection over SSL/TLS
+If your mainframe application exposes a service over TCP (like a custom socket-based protocol), you can connect to it securely using SSL/TLS by establishing an encrypted socket connection.
+
+To do this, you would:
+
+Create a socket connection to the mainframe over a secure port (e.g., port 8443, or any other port configured for SSL).
+Enable SSL/TLS on the socket to encrypt the communication.
+Example of SSL/TLS Socket Communication in Java
+java
+Copy
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.KeyStore;
+
+public class MainframeSslSocketClient {
+
+    public static void main(String[] args) throws Exception {
+        String host = "mainframe-server";  // Mainframe server host
+        int port = 8443;  // Open secure port on mainframe
+        
+        // Load the client's keystore and truststore
+        char[] keystorePassword = "keystorePassword".toCharArray();
+        char[] truststorePassword = "truststorePassword".toCharArray();
+
+        // Create a KeyManagerFactory to manage client certificates
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        FileInputStream keyStoreInputStream = new FileInputStream("path-to-client-keystore.jks");
+        keyStore.load(keyStoreInputStream, keystorePassword);
+        
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        FileInputStream trustStoreInputStream = new FileInputStream("path-to-truststore.jks");
+        trustStore.load(trustStoreInputStream, truststorePassword);
+
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, keystorePassword);
+
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new java.security.SecureRandom());
+
+        // Create an SSLSocketFactory
+        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        // Open the socket to the mainframe
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
+        
+        // Start SSL handshake
+        sslSocket.startHandshake();
+        
+        // Send a request to the mainframe application
+        OutputStream out = sslSocket.getOutputStream();
+        PrintWriter writer = new PrintWriter(out);
+        writer.println("YOUR_REQUEST_HERE");  // Send data in your desired format
+        writer.flush();
+
+        // Read the response from the mainframe
+        BufferedReader reader = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+        String response;
+        while ((response = reader.readLine()) != null) {
+            System.out.println(response);  // Process response from the mainframe
+        }
+
+        // Close the connection
+        sslSocket.close();
+    }
+}
