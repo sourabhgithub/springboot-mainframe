@@ -1,0 +1,95 @@
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class PredaprovedOfferedControllerIntegrationTest {
+
+    @LocalServerPort
+    private int port;
+
+    @BeforeEach
+    void setUp() {
+        RestAssured.port = port; // Set the port for REST Assured
+        RestAssured.baseURI = "http://localhost"; // Set the base URI
+    }
+
+    @Test
+    void testGetProspectInfo_Success() {
+        // Define the request parameters
+        String mockAccountNumber = "12345";
+        String applicationDifferentiator = "diff";
+        String campaignId = "camp1";
+        String sourceCode = "src1";
+
+        // Perform the GET request and validate the response
+        given()
+            .queryParam("mockAccountNumber", mockAccountNumber)
+            .queryParam("applicationDifferentiator", applicationDifferentiator)
+            .queryParam("campaignId", campaignId)
+            .queryParam("sourceCode", sourceCode)
+        .when()
+            .get("/PREAPPROVED_OFFERS_ENDPOINT")
+        .then()
+            .statusCode(200) // Expect HTTP 200 OK
+            .body("someField", equalTo("expectedValue")); // Validate response body (adjust as needed)
+    }
+
+    @Test
+    void testGetProspectInfo_InvalidInvitationCode() {
+        // Define the request parameters
+        String mockAccountNumber = "invalid";
+        String applicationDifferentiator = "diff";
+        String campaignId = "camp1";
+        String sourceCode = "src1";
+
+        // Perform the GET request and validate the response
+        given()
+            .queryParam("mockAccountNumber", mockAccountNumber)
+            .queryParam("applicationDifferentiator", applicationDifferentiator)
+            .queryParam("campaignId", campaignId)
+            .queryParam("sourceCode", sourceCode)
+        .when()
+            .get("/PREAPPROVED_OFFERS_ENDPOINT")
+        .then()
+            .statusCode(400); // Expect HTTP 400 Bad Request
+    }
+
+    @Test
+    void testUpdateProspect_Success() {
+        // Define the request body
+        InvitationCode invitationCode = new InvitationCode("12345", "diff", "camp1", "src1");
+
+        // Perform the PUT request and validate the response
+        given()
+            .contentType(ContentType.JSON)
+            .body(invitationCode)
+        .when()
+            .put("/PREAPPROVED_OFFERS_ENDPOINT")
+        .then()
+            .statusCode(204); // Expect HTTP 204 No Content
+    }
+
+    @Test
+    void testUpdateProspect_UsedOrExpiredCode() {
+        // Define the request body
+        InvitationCode invitationCode = new InvitationCode("expired", "diff", "camp1", "src1");
+
+        // Perform the PUT request and validate the response
+        given()
+            .contentType(ContentType.JSON)
+            .body(invitationCode)
+        .when()
+            .put("/PREAPPROVED_OFFERS_ENDPOINT")
+        .then()
+            .statusCode(409); // Expect HTTP 409 Conflict
+    }
+}
